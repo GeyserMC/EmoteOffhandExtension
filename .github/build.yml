@@ -1,0 +1,69 @@
+name: Build
+
+on:
+  workflow_dispatch:
+  push:
+    paths-ignore:
+      - '.idea/copyright/*.xml' 
+      - '.gitignore'
+      - 'LICENSE'
+      - 'README.md'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup Gradle
+        uses: GeyserMC/actions/setup-gradle-composite@master
+        with:
+          setup-java_java-version: 17
+
+      - name: Build EmoteOffhandExtension
+        run: ./gradlew build
+
+      - name: Archive Artifacts
+        uses: GeyserMC/actions/upload-multi-artifact@master
+        if: success()
+        with:
+          artifacts: build/libs/EmoteOffhand.jar
+
+      - name: Get Version
+        if: ${{ success() && github.repository == 'GeyserMC/EmoteOffhandExtension' && github.ref_name == 'master' }}
+        id: get-version
+        run: |
+          version=$(cat build.gradle | grep -o "version '[0-9\\.]*'" | cut -d" " -f2 | sed "s/'//g")
+          echo "VERSION=${version}" >> $GITHUB_OUTPUT
+
+      - name: Get Release Metadata
+        if: ${{ success() && github.repository == 'GeyserMC/EmoteOffhandExtension' && github.ref_name == 'master' }}
+        uses: GeyserMC/actions/release@master
+        id: metadata
+        with:
+          appID: ${{ secrets.RELEASE_APP_ID }}
+          appPrivateKey: ${{ secrets.RELEASE_APP_PK }}
+          files: |
+            emoteoffhand:build/libs/EmoteOffhand.jar
+          releaseEnabled: false
+          saveMetadata: true
+          releaseProject: 'emoteoffhand'
+          releaseVersion: ${{ steps.get-version.outputs.VERSION }}
+
+      - name: Publish to Downloads API
+        if: ${{ success() && github.repository == 'GeyserMC/EmoteOffhandExtension' && github.ref_name == 'master' }}
+        uses: GeyserMC/actions/upload-release@master
+        with:
+          username: ${{ vars.DOWNLOADS_USERNAME }}
+          privateKey: ${{ secrets.DOWNLOADS_PRIVATE_KEY }}
+          host: ${{ secrets.DOWNLOADS_SERVER_IP }}
+          files: |
+            build/libs/EmoteOffhand.jar
+          changelog: ${{ steps.metadata.outputs.body }}
+
+      - name: Notify Discord
+        if: ${{ (success() || failure()) && github.repository == 'GeyserMC/EmoteOffhandExtension' }}
+        uses: GeyserMC/actions/notify-discord@master
+        with:
+          discordWebhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: ${{ job.status }}
+          body: ${{ steps.metadata.outputs.body }}
