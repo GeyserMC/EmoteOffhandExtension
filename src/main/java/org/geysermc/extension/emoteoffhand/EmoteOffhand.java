@@ -6,7 +6,6 @@ import org.geysermc.geyser.api.event.lifecycle.GeyserPostInitializeEvent;
 import org.geysermc.geyser.api.extension.Extension;
 
 public class EmoteOffhand implements Extension {
-
     @Subscribe
     public void onPostInitialize(GeyserPostInitializeEvent ignored) {
         this.logger().info("Loaded EmoteOffhand!");
@@ -14,6 +13,6 @@ public class EmoteOffhand implements Extension {
 
     @Subscribe
     public void onEmote(ClientEmoteEvent event) {
-        event.connection().entities().switchHands();
+        event.connection().requestOffhandSwap();
     }
 }
