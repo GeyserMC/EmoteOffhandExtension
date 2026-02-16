@@ -1,6 +1,6 @@
 id: emoteoffhand
 name: EmoteOffhand
 main: org.geysermc.extension.emoteoffhand.EmoteOffhand
-api: 2.9.0
+api: 2.9.3
 version: 1.0.0
 authors: [Auri]
